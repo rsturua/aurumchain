@@ -50,14 +50,16 @@ export default function AdminInvestmentsPage() {
       fetching.active = true;
       setLoading(true);
       
-      const [allSubs, allProjects, { data: dbProjects }, { data: dbInvestments }] = await Promise.all([
+      const [allSubs, allProjects, { data: dbProjects }, invResponse] = await Promise.all([
         repo.fetchAll(),
         registryService.fetchAllProjects(),
         supabase.from('projects').select('id, blockchain_project_id, name, images, token_symbol, token_price'),
-        supabase.from('investments')
-          .select('id, amount, status, tokens_purchased, invested_at, minted_tx_hash, finalized_tx_hash, offering_id, project_id, user_id, projects!inner(id, blockchain_project_id, name, images, token_symbol, token_price), profiles!inner(id, crypto_wallet_address, first_name, last_name)')
-          .order('invested_at', { ascending: false })
+        fetch('/api/admin/investments')
       ]);
+
+      const invResult = await invResponse.json();
+      const dbInvestments = invResult.data || [];
+      if (invResult.error) console.error("Investments fetch error:", invResult.error);
 
       // Map projects by ID for quick lookup
       const projectMap: Record<string, any> = {};

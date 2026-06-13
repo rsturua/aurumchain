@@ -9,23 +9,27 @@ if (typeof window === 'undefined') {
 
 /**
  * Global Blockchain RPC Configuration
- * 
+ *
  * This file centralizes the RPC endpoint selection logic.
- * Swapping providers (e.g. Alchemy vs public node) only requires
- * changing the .env variable.
+ * To change providers, set ALCHEMY_RPC_URL in your .env file.
+ * To switch networks, set NEXT_PUBLIC_SOLANA_RPC_URL in your .env file.
  */
 
-const NETWORK = 'devnet';
+const NETWORK = process.env.NEXT_PUBLIC_SOLANA_CLUSTER || 'devnet';
 
 /**
- * The master RPC URL used by the entire application.
- * Prioritizes .env, then falls back to public devnet.
+ * Primary RPC URL — read from env (server-side only).
+ * Falls back to the public devnet node so the app still works
+ * even if the env var is temporarily missing.
  */
-export const SOLANA_RPC_URL = 
-  'https://solana-devnet.g.alchemy.com/v2/4ZYO0JBTWn7EHda1T-bf5';
+export const SOLANA_RPC_URL =
+  process.env.ALCHEMY_RPC_URL ||
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
+  'https://api.devnet.solana.com';
 
-export const FALLBACK_RPC_URL = 
-  process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 
+/** Public fallback used for calls that the primary provider restricts (e.g. getProgramAccounts on Alchemy free tier). */
+export const FALLBACK_RPC_URL =
+  process.env.NEXT_PUBLIC_SOLANA_RPC_URL ||
   'https://api.devnet.solana.com';
 
 /**

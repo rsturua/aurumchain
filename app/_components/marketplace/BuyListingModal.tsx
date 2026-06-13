@@ -55,7 +55,7 @@ export function BuyListingModal({ isOpen, onClose, listing, onSuccess }: BuyList
       setError(null);
       checkEligibility();
     }
-  }, [isOpen, publicKey, listing]);
+  }, [isOpen, publicKey?.toBase58(), listing?.id]);
 
   async function checkEligibility() {
     if (!publicKey || !connection) return;
@@ -255,7 +255,7 @@ export function BuyListingModal({ isOpen, onClose, listing, onSuccess }: BuyList
               <div className="bg-navy/50 rounded-xl p-4 mb-8 border border-white/10">
                 <p className="text-xs text-gray-500 mb-2 uppercase tracking-widest">Transaction Signature</p>
                 <a 
-                  href={`https://explorer.solana.com/tx/${txSig}?cluster=devnet`}
+                  href={`https://solscan.io/tx/${txSig}?cluster=devnet`}
                   target="_blank"
                   className="text-gold font-mono text-xs break-all hover:underline"
                 >

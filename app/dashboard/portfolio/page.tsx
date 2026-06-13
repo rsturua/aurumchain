@@ -74,8 +74,6 @@ export default function PortfolioPage() {
         ? (Number(pos.total_invested) / portfolioStats.totalValue) * 100 
         : 0;
 
-      const isPending = dbInvestments.some(inv => inv.project_id === pos.project_id && !inv.minted_tx_hash);
-
       return {
         id: pos.id,
         projectId: pos.project_id,
@@ -87,11 +85,10 @@ export default function PortfolioPage() {
         returnPercentage: pos.total_invested > 0 ? ((Number(pos.total_dividends_received || 0) / Number(pos.total_invested)) * 100).toFixed(1) : "0.0",
         status: project?.status || "active",
         total_tokens: Number(pos.total_tokens),
-        isPending,
         projects: project,
       };
     }).sort((a: any, b: any) => b.value - a.value);
-  }, [positions, portfolioStats.totalValue, dbInvestments]);
+  }, [positions, portfolioStats.totalValue]);
 
   const performanceMetrics = [
     {
@@ -338,11 +335,7 @@ export default function PortfolioPage() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  {project.isPending ? (
-                    <span className="px-3 py-1.5 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 text-xs font-semibold rounded-lg">
-                      Pending Minting
-                    </span>
-                  ) : project.total_tokens > 0 && project.status === 'active' && project.projects?.lockup_end_date && new Date(project.projects.lockup_end_date).getTime() < Date.now() ? (
+                  {project.total_tokens > 0 && project.status === 'active' && project.projects?.lockup_end_date && new Date(project.projects.lockup_end_date).getTime() < Date.now() && (
                     <button
                       onClick={() => {
                         setSelectedPosition({
@@ -356,7 +349,7 @@ export default function PortfolioPage() {
                     >
                       List for Sale
                     </button>
-                  ) : null}
+                  )}
 
                   <Link
                     href={`/projects/${project.projects?.slug || ''}`}

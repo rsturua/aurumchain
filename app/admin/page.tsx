@@ -4,7 +4,7 @@
  */
 
 import { redirect } from 'next/navigation';
-import { createClient } from '@/lib/supabase/server';
+import { createClient, createAdminClient } from '@/lib/supabase/server';
 import { AdminService } from '@/lib/domains/admin/service';
 import AdminSignOutButton from '@/components/admin/AdminSignOutButton';
 
@@ -14,6 +14,37 @@ export default async function AdminPage() {
 
   // User is guaranteed to exist and be an admin by the layout
   const roles = await AdminService.getUserRoles(user!.id);
+  const adminSupabase = createAdminClient();
+
+  // Fetch Total Users
+  const { count: totalUsers } = await adminSupabase
+    .from('profiles')
+    .select('*', { count: 'exact', head: true });
+
+  // Fetch Pending KYC
+  const { count: pendingKyc } = await adminSupabase
+    .from('kyc_records')
+    .select('*', { count: 'exact', head: true })
+    .eq('status', 'pending');
+
+  // Fetch Active Investments
+  const { data: positions } = await adminSupabase
+    .from('portfolio_positions')
+    .select('total_invested');
+  
+  const activeInvestmentsTotal = positions?.reduce((sum, p) => sum + (Number(p.total_invested) || 0), 0) || 0;
+
+  // Fetch Payouts This Month
+  const startOfMonth = new Date();
+  startOfMonth.setDate(1);
+  startOfMonth.setHours(0, 0, 0, 0);
+
+  const { data: payouts } = await adminSupabase
+    .from('payout_records')
+    .select('amount_due')
+    .gte('created_at', startOfMonth.toISOString());
+    
+  const payoutsThisMonth = payouts?.reduce((sum, p) => sum + (Number(p.amount_due) || 0), 0) || 0;
 
   return (
     <div className="min-h-screen bg-navy pt-24 px-6">
@@ -42,25 +73,25 @@ export default async function AdminPage() {
         <div className="grid md:grid-cols-4 gap-6 mb-8">
           <StatCard
             title="Total Users"
-            value="—"
+            value={totalUsers?.toString() || "0"}
             icon="👥"
             description="All registered users"
           />
           <StatCard
             title="Pending KYC"
-            value="—"
+            value={pendingKyc?.toString() || "0"}
             icon="📋"
             description="Awaiting review"
           />
           <StatCard
             title="Active Investments"
-            value="—"
+            value={`$${activeInvestmentsTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon="💰"
             description="Total invested"
           />
           <StatCard
             title="Payouts This Month"
-            value="—"
+            value={`$${payoutsThisMonth.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
             icon="💸"
             description="Dividends distributed"
           />

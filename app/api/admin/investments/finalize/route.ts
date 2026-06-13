@@ -8,6 +8,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient, createAdminClient } from '@/lib/supabase/server';
+import { AdminService } from '@/lib/domains/admin/service';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,7 +19,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // TODO: add admin role check here if you have one (e.g. profiles.role = 'admin')
+    // Enforce admin role — same check used by the admin layout.
+    // Blocks direct API calls (curl, Postman, etc.) from non-admin logged-in users.
+    const isAdmin = await AdminService.isAdmin(user.id);
+    if (!isAdmin) {
+      return NextResponse.json({ error: 'Forbidden: admin access required' }, { status: 403 });
+    }
 
     const body = await request.json();
     const { invDbId, offeringId, mintedTxHash, approvedAt } = body;

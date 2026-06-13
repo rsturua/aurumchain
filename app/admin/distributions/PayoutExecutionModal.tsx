@@ -14,6 +14,7 @@ interface InvestorData {
   payoutAmount: number;
   alreadyPaid: boolean;
   profileId: string;
+  lockedTokens: number;
 }
 
 interface PayoutExecutionModalProps {
@@ -64,7 +65,7 @@ export default function PayoutExecutionModal({ epoch, projects, program, onClose
       }
 
       // 3. Fetch all portfolio positions for this project via Admin API (bypasses RLS)
-      const res = await fetch(`/api/admin/distributions/investors?projectId=${project.id}&epochId=${epoch.id}`);
+      const res = await fetch(`/api/admin/distributions/investors?projectId=${project.id}&epochId=${epoch.id}`, { cache: 'no-store' });
       if (!res.ok) {
         const err = await res.json();
         throw new Error(err.error || "Failed to fetch investors");
@@ -85,15 +86,18 @@ export default function PayoutExecutionModal({ epoch, projects, program, onClose
         
         const profileId = pos.user_id;
         const tokens = pos.total_tokens;
+        const locked = pos.locked_tokens || 0;
 
         if (investorMap.has(walletAddr)) {
           const existing = investorMap.get(walletAddr)!;
           existing.tokensInvested += tokens;
+          existing.lockedTokens += locked;
           existing.payoutAmount = existing.tokensInvested * profitPerTokenHuman;
         } else {
           investorMap.set(walletAddr, {
             wallet: walletAddr,
             tokensInvested: tokens,
+            lockedTokens: locked,
             currentBalance: 0,
             payoutAmount: tokens * profitPerTokenHuman,
             alreadyPaid: paidUserIds.has(profileId),
@@ -185,9 +189,31 @@ export default function PayoutExecutionModal({ epoch, projects, program, onClose
         program.programId
       );
 
+      const walletsToProcess = Array.from(selectedWallets);
+      
+      // Pre-validation: Double check on-chain balances to prevent transaction failures
+      setStatus({ type: 'info', msg: "Validating true on-chain balances..." });
+      for (const investorWalletStr of walletsToProcess) {
+        const investor = investors.find(inv => inv.wallet === investorWalletStr)!;
+        try {
+          const investorTokenAccount = await getAssociatedTokenAddress(mint, new PublicKey(investorWalletStr), false, tokenProgramId);
+          const accountInfo = await connection.getParsedAccountInfo(investorTokenAccount);
+          let actualBalance = 0;
+          if (accountInfo.value && 'parsed' in accountInfo.value.data) {
+             actualBalance = accountInfo.value.data.parsed.info.tokenAmount.uiAmount;
+          }
+          
+          const expectedOnChainBalance = investor.tokensInvested - investor.lockedTokens;
+          if (actualBalance < expectedOnChainBalance) {
+             throw new Error(`Database out of sync! Wallet ${investorWalletStr.slice(0,6)}... has ${actualBalance} tokens in their personal wallet and ${investor.lockedTokens} in escrow, but the payout expects ${investor.tokensInvested} total.`);
+          }
+        } catch (e: any) {
+           throw new Error(e.message || "Failed to validate on-chain balance.");
+        }
+      }
+
       // Batching Logic (5-8 instructions per transaction is safe for Solana)
       const BATCH_SIZE = 5;
-      const walletsToProcess = Array.from(selectedWallets);
       setProgress({ current: 0, total: walletsToProcess.length });
 
       for (let i = 0; i < walletsToProcess.length; i += BATCH_SIZE) {
@@ -302,10 +328,16 @@ export default function PayoutExecutionModal({ epoch, projects, program, onClose
           .map(r => ({ ...r, tx_hash: tx }));
 
         if (recordsToInsert.length > 0) {
-          const { error: dbError } = await supabase.from('payout_records').insert(recordsToInsert);
-          if (dbError) {
-            console.error("Database Sync Error Details:", dbError);
-            setStatus({ type: 'error', msg: `Batch succeeded on-chain, but DB sync failed: ${dbError.message}` });
+          const syncRes = await fetch('/api/admin/distributions/sync-batch', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ recordsToInsert })
+          });
+          
+          if (!syncRes.ok) {
+            const err = await syncRes.json();
+            console.error("Database Sync Error Details:", err);
+            setStatus({ type: 'error', msg: `Batch succeeded on-chain, but DB sync failed: ${err.error}` });
           } else {
             // Audit Log for successful batch
             await fetch('/api/admin/audit-logs', {

@@ -460,7 +460,7 @@ export function useDashboardData() {
       // Use the unified statuses calculated earlier
       setData({
         user: {
-          name: `${profile?.first_name || ""} ${profile?.last_name || ""}`.trim() || "User",
+          name: `${profile?.first_name || authUser.user_metadata?.first_name || ""} ${profile?.last_name || authUser.user_metadata?.last_name || ""}`.trim() || authUser.user_metadata?.full_name || "User",
           email: profile?.email || authUser.email || "",
           investorTier: profile?.investor_tier || "browser",
           isKycVerified: currentKycStatus === 'approved' || currentKycStatus === 'verified' || currentKycStatus === 'investment_eligible' || currentKycStatus === 'kyc_approved',

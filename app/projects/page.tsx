@@ -328,7 +328,7 @@ function ProjectCard({
               <div className="flex justify-between items-center">
                 <span>Token Mint</span>
                 <a
-                  href={`https://explorer.solana.com/address/${chain!.mint}?cluster=devnet`}
+                  href={`https://solscan.io/token/${chain!.mint}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gold underline underline-offset-2 hover:text-gold-light truncate max-w-[140px]"
@@ -341,7 +341,7 @@ function ProjectCard({
               <div className="flex justify-between items-center">
                 <span>Tx Sig</span>
                 <a
-                  href={`https://explorer.solana.com/tx/${project.blockchain_signature}?cluster=devnet`}
+                  href={`https://solscan.io/tx/${project.blockchain_signature}?cluster=devnet`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="text-gold underline underline-offset-2 hover:text-gold-light truncate max-w-[140px]"

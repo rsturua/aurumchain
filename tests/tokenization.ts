@@ -108,7 +108,7 @@ describe("Solana Tokenization Service Verification", () => {
       // For the sake of purely testing the TOKENIZATION service logic, we wrap the PDA call.
       const result = await tokenizationService.deployToken(deployInput as any);
       console.log(`✅ SPL Mint Created: ${result.contractAddress}`);
-      console.log(`🔗 Tx: https://explorer.solana.com/tx/${result.deploymentTxHash}?cluster=devnet`);
+      console.log(`🔗 Tx: https://solscan.io/tx/${result.deploymentTxHash}?cluster=devnet`);
 
       // 2. Mint Tokens
       // 500 tokens (with 6 decimals = 500,000,000 units)

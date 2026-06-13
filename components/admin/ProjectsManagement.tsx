@@ -1401,7 +1401,7 @@ export default function ProjectsManagement({ initialProjects, userId }: Projects
                   <div className="mt-3 flex items-center gap-2">
                     <span className="text-xs px-2 py-0.5 rounded-full bg-gold/10 text-gold border border-gold/30">⛓ On-Chain</span>
                     <a
-                      href={`https://explorer.solana.com/tx/${project.blockchain_signature}?cluster=devnet`}
+                      href={`https://solscan.io/tx/${project.blockchain_signature}?cluster=devnet`}
                       target="_blank" rel="noopener noreferrer"
                       className="text-xs text-gray-500 hover:text-gold underline underline-offset-2"
                     >

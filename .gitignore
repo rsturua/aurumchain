@@ -27,7 +27,6 @@ yarn-error.log*
 
 # Environment Variables - NEVER commit these!
 .env*.local
-.env
 
 # Vercel
 .vercel
@@ -36,7 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 
 # IDE
-.vscode
 .idea
 *.swp
 *.swo
@@ -87,5 +85,6 @@ docs/PHASED_TOKEN_PLAN.md
 docs/INVESTOR_LOCKUP_PLAN.md
 docs/payout.md
 docs/changes.md
+docs/production_readiness_report.md
 
 config.bat

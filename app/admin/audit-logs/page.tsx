@@ -35,7 +35,77 @@ export default async function AdminAuditLogsPage() {
     .order('timestamp', { ascending: false })
     .limit(200);
 
+  // Fetch secondary listings and trades
+  const { data: rawListings } = await adminSupabase
+    .from('secondary_listings')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
+  const { data: rawTrades } = await adminSupabase
+    .from('secondary_trades')
+    .select('*')
+    .order('created_at', { ascending: false })
+    .limit(100);
+
   let logs = rawLogs || [];
+  
+  if (rawListings) {
+    logs = [
+      ...logs,
+      ...rawListings.map((l: any) => ({
+        id: l.id,
+        event_type: 'secondary_listing_created',
+        user_id: l.investor_id,
+        actor_id: l.investor_id,
+        actor_role: 'Investor',
+        description: `Listed ${l.token_amount} tokens at $${l.token_listing_price} each for project ${l.project_id}. Status: ${l.status}`,
+        metadata: {
+          project_id: l.project_id,
+          token_amount: l.token_amount,
+          token_listing_price: l.token_listing_price,
+          status: l.status,
+          blockchainSignature: l.creation_tx
+        },
+        previous_state: null,
+        new_state: l,
+        ip_address: null,
+        user_agent: null,
+        timestamp: l.created_at
+      }))
+    ];
+  }
+
+  if (rawTrades) {
+    logs = [
+      ...logs,
+      ...rawTrades.map((t: any) => ({
+        id: t.id,
+        event_type: 'secondary_trade_executed',
+        user_id: t.buyer_id,
+        actor_id: t.buyer_id,
+        actor_role: 'Investor',
+        description: `Purchased ${t.tokens_purchased} tokens at $${t.price_per_token} each on secondary market.`,
+        metadata: {
+          project_id: t.project_id,
+          tokens_purchased: t.tokens_purchased,
+          price_per_token: t.price_per_token,
+          total_cost: t.total_cost,
+          listing_id: t.listing_id,
+          blockchainSignature: t.tx_hash
+        },
+        previous_state: null,
+        new_state: t,
+        ip_address: null,
+        user_agent: null,
+        timestamp: t.created_at
+      }))
+    ];
+  }
+  
+  // Sort combined logs
+  logs.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+
   let error = fetchError;
 
   if (!error && logs.length > 0) {

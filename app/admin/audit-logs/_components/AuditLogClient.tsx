@@ -40,6 +40,7 @@ export function AuditLogClient({ initialLogs }: AuditLogClientProps) {
     { id: 'investments', label: 'Token Purchases' },
     { id: 'project_update', label: 'Project Updates' },
     { id: 'payouts', label: 'Payouts & Distributions' },
+    { id: 'secondary_market', label: 'Secondary Market' },
     { id: 'compliance', label: 'KYC & Compliance' },
     { id: 'security', label: 'Security & Auth' },
   ];
@@ -59,6 +60,8 @@ export function AuditLogClient({ initialLogs }: AuditLogClientProps) {
         log.description.toLowerCase().includes('resumed');
     } else if (filterCategory === 'payouts') {
       matchesCategory = log.event_type.includes('payout') || log.description.toLowerCase().includes('epoch');
+    } else if (filterCategory === 'secondary_market') {
+      matchesCategory = log.event_type.includes('secondary_');
     } else if (filterCategory === 'compliance') {
       matchesCategory = log.event_type.includes('kyc') || log.event_type.includes('eligibility');
     } else if (filterCategory === 'security') {
@@ -79,6 +82,7 @@ export function AuditLogClient({ initialLogs }: AuditLogClientProps) {
   const getEventBadgeColor = (type: string) => {
     if (type.includes('approved')) return 'bg-green-500/20 text-green-400 border-green-500/30';
     if (type.includes('rejected') || type.includes('suspended')) return 'bg-red-500/20 text-red-400 border-red-500/30';
+    if (type.includes('secondary_')) return 'bg-cyan-500/20 text-cyan-400 border-cyan-500/30';
     if (type.includes('investment') || type.includes('wallet')) return 'bg-blue-500/20 text-blue-400 border-blue-500/30';
     if (type.includes('admin') || type.includes('project')) return 'bg-purple-500/20 text-purple-400 border-purple-500/30';
     if (type.includes('payout')) return 'bg-gold/20 text-gold border-gold/30';

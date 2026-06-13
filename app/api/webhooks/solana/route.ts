@@ -168,19 +168,8 @@ async function syncSubscriptions() {
         const isAllocated = subStatus === 'allocated';
         const hasPaymentHash = paymentHash.length > 20;
 
-        // 🛡️ PROTECTION LIST: Skip logic for manually verified records
-        const PROTECTION_LIST = [
-          'db96e990-8463-4f4d-8cbf-dc22373d9cef',
-          'edec3f26-9970-4ddd-9c2f-aa7f338d10bb',
-          '7e42f510-6d50-46a8-877d-a321b5780433',
-          '1f45647b-8ebd-4ac3-bd6e-26a28b0407dc',
-          '9a382347-c9e3-40db-bfe0-8e373dcd2031'
-        ];
-
-        if (existing && PROTECTION_LIST.includes(existing.id)) {
-          continue;
-        }
         
+
         // 🛡️ STRICT ROLE SEPARATION:
         // finalized_tx_hash = investor's USDC payment signature.
         //   Set ONCE at investment creation (Stage 1). NEVER touched here.
@@ -544,53 +533,8 @@ async function syncSecondaryMarket(signature?: string) {
                   created_at: new Date(Number(eventData.timestamp) * 1000).toISOString()
                 });
 
-                // Update Portfolio Positions
-                // Deduct from seller
-                const { data: sellerPortfolio } = await supabase
-                  .from('portfolio_positions')
-                  .select('*')
-                  .eq('user_id', listing.investor_id)
-                  .eq('project_id', listing.project_id)
-                  .maybeSingle();
-                  
-                if (sellerPortfolio) {
-                  const avgPrice = Number(sellerPortfolio.average_token_price || 0);
-                  const newTotalTokens = Math.max(0, Number(sellerPortfolio.total_tokens) - fillAmount);
-                  const newInvested = Math.max(0, Number(sellerPortfolio.total_invested || 0) - (fillAmount * avgPrice));
-                  await supabase.from('portfolio_positions').update({
-                    total_tokens: newTotalTokens,
-                    locked_tokens: Math.max(0, Number(sellerPortfolio.locked_tokens) - fillAmount),
-                    total_invested: newInvested,
-                    average_token_price: newTotalTokens > 0 ? newInvested / newTotalTokens : 0
-                  }).eq('id', sellerPortfolio.id);
-                }
-
-                // Add to buyer
-                const { data: buyerPortfolio } = await supabase
-                  .from('portfolio_positions')
-                  .select('*')
-                  .eq('user_id', buyerProfile.id)
-                  .eq('project_id', listing.project_id)
-                  .maybeSingle();
-
-                if (buyerPortfolio) {
-                  const newTotalTokens = Number(buyerPortfolio.total_tokens) + fillAmount;
-                  const newInvested = Number(buyerPortfolio.total_invested || 0) + totalCost;
-                  await supabase.from('portfolio_positions').update({
-                    total_tokens: newTotalTokens,
-                    total_invested: newInvested,
-                    average_token_price: newInvested / newTotalTokens
-                  }).eq('id', buyerPortfolio.id);
-                } else {
-                  await supabase.from('portfolio_positions').insert({
-                    user_id: buyerProfile.id,
-                    project_id: listing.project_id,
-                    total_tokens: fillAmount,
-                    locked_tokens: 0,
-                    total_invested: totalCost,
-                    average_token_price: totalCost / fillAmount
-                  });
-                }
+                // Portfolio positions are updated automatically via the 'update_portfolio_positions_on_secondary_trade'
+                // database trigger which runs on 'secondary_trades' INSERT. Do NOT update them manually here to avoid double-counting.
 
                 // Update listing balances
                 const newSold = Number(listing.sold) + fillAmount;

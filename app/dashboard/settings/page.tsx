@@ -136,7 +136,7 @@ export default function SettingsPage() {
         return;
       }
 
-      const { error } = await supabase
+      const { error: profileError } = await supabase
         .from('profiles')
         .update({
           first_name: profileData.firstName,
@@ -147,7 +147,20 @@ export default function SettingsPage() {
         })
         .eq('id', user.id);
 
-      if (error) throw error;
+      if (profileError) throw profileError;
+
+      // Sync the user_metadata to ensure session auth data matches
+      const { error: authError } = await supabase.auth.updateUser({
+        data: {
+          first_name: profileData.firstName,
+          last_name: profileData.lastName,
+          phone: profileData.phone,
+        }
+      });
+
+      if (authError) {
+        console.warn('Non-critical: Failed to sync auth user metadata', authError);
+      }
 
       setMessage({ type: 'success', text: 'Profile updated successfully!' });
     } catch (error: any) {
