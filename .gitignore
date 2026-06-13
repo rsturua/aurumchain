@@ -27,7 +27,6 @@ yarn-error.log*
 
 # Environment Variables - NEVER commit these!
 .env*.local
-.env
 
 # Vercel
 .vercel
@@ -36,7 +35,6 @@ yarn-error.log*
 *.tsbuildinfo
 
 # IDE
-.vscode
 .idea
 *.swp
 *.swo
